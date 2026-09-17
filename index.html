@@ -1,0 +1,977 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>짤·카드 스튜디오</title>
+<style>
+  :root{
+    --bg:#141210; --panel:#1c1917; --panel-2:#232020; --line:#332e2a;
+    --ink:#e8e0d4; --ink-dim:#9c938a; --accent:#b08d57; --danger:#c4695e;
+    --serif:"Nanum Myeongjo","Apple SD Gothic Neo",AppleMyungjo,Batang,바탕,"Times New Roman",serif;
+    --sans:"Pretendard","Apple SD Gothic Neo","Malgun Gothic",맑은 고딕,system-ui,sans-serif;
+  }
+  *{box-sizing:border-box}
+  body{margin:0;background:var(--bg);color:var(--ink);font-family:var(--sans);font-size:14px;line-height:1.6}
+  header{padding:20px 24px 16px;border-bottom:1px solid var(--line)}
+  header h1{margin:0;font-family:var(--serif);font-size:22px;font-weight:400;letter-spacing:.06em}
+  header p{margin:4px 0 0;color:var(--ink-dim);font-size:12.5px}
+
+  main{display:grid;grid-template-columns:320px minmax(0,1fr) 300px;gap:16px;
+        padding:16px;align-items:start;max-width:1760px;margin:0 auto}
+  /* 가운데가 좁아지면 도구칸을 아래로 내려 3칸으로 편다 */
+  @media (max-width:1340px){
+    main{grid-template-columns:300px minmax(0,1fr)}
+    .tools{grid-column:1/-1;display:grid;grid-template-columns:repeat(3,1fr);gap:12px}
+    .tools > .panel + .panel{margin-top:0}
+  }
+  @media (max-width:900px){
+    main{grid-template-columns:1fr;padding:12px;gap:12px}
+    .tools{grid-template-columns:1fr}
+    .tools > .panel + .panel{margin-top:12px}
+  .tnote{font-size:11px;color:var(--ink-dim);margin-top:8px;line-height:1.55}
+  input[type=text]{flex:1;min-width:0;background:var(--panel-2);border:1px solid var(--line);
+                   color:var(--ink);border-radius:3px;padding:7px 9px;font-family:inherit;font-size:13px}
+  input[type=text]:focus{outline:1px solid var(--accent);outline-offset:-1px}
+  .tlist{margin-top:10px;display:flex;flex-direction:column;gap:6px}
+  .titem{background:var(--panel-2);border:1px solid var(--line);border-radius:3px;padding:8px 9px}
+  .titem.on{border-color:var(--accent)}
+  .tname{font-size:12.5px;line-height:1.35;word-break:break-all}
+  .tname span{display:block;font-size:10.5px;color:var(--ink-dim);margin-top:2px;
+              font-variant-numeric:tabular-nums}
+  .tbtns{display:flex;gap:4px;margin-top:7px}
+  .tbtns button{flex:1;background:transparent;border:1px solid var(--line);color:var(--ink-dim);
+                border-radius:3px;padding:4px 0;font-size:11px;cursor:pointer;font-family:inherit}
+  .tbtns button:hover{border-color:var(--accent);color:var(--accent)}
+  .tempty{font-size:11.5px;color:var(--ink-dim);padding:10px 0}
+  }
+
+  .panel{background:var(--panel);border:1px solid var(--line);border-radius:4px;padding:16px}
+  .panel + .panel{margin-top:12px}
+  .panel h2{margin:0 0 12px;font-family:var(--serif);font-size:13.5px;font-weight:400;
+            letter-spacing:.08em;color:var(--ink-dim);padding-bottom:7px;border-bottom:1px solid var(--line)}
+
+  label{display:block;font-size:12px;color:var(--ink-dim);margin:11px 0 4px}
+  .panel > label:first-of-type{margin-top:0}
+
+  textarea{width:100%;background:var(--panel-2);border:1px solid var(--line);color:var(--ink);
+           border-radius:3px;padding:9px 10px;font-family:var(--serif);font-size:14px;line-height:1.5;resize:vertical}
+  textarea:focus{outline:1px solid var(--accent);outline-offset:-1px}
+
+  input[type=range]{width:100%;accent-color:var(--accent);margin:2px 0}
+  input[type=range]:disabled{opacity:.3;cursor:not-allowed}
+  .dim{opacity:.4}
+  .fitnote{font-size:11px;color:var(--ink-dim);margin-top:9px;line-height:1.55;white-space:pre-line;
+           padding:7px 9px;background:var(--panel-2);border-radius:3px}
+  input[type=color]{width:42px;height:28px;padding:0;border:1px solid var(--line);
+                    background:var(--panel-2);border-radius:3px;cursor:pointer;flex:none}
+
+  .row{display:flex;align-items:center;gap:8px}
+  .val{font-size:11.5px;color:var(--ink-dim);min-width:44px;text-align:right;font-variant-numeric:tabular-nums}
+
+  .btn{background:var(--panel-2);border:1px solid var(--line);color:var(--ink);border-radius:3px;
+       padding:7px 11px;font-size:12.5px;cursor:pointer;font-family:inherit}
+  .btn:hover{border-color:var(--accent)}
+  .btn.on{border-color:var(--accent);color:var(--accent)}
+  .btn-group{display:flex;gap:5px}
+  .btn-group .btn{flex:1;padding:7px 0}
+
+  .swatches{display:flex;gap:5px;flex-wrap:wrap}
+  .sw{width:24px;height:24px;border-radius:3px;border:1px solid var(--line);cursor:pointer}
+  .sw:hover{border-color:var(--accent)}
+
+  .file-name{font-size:11.5px;color:var(--ink-dim);margin-top:7px;word-break:break-all;min-height:1.4em}
+  .notice{margin-top:9px;padding:9px 11px;border-radius:3px;font-size:12.5px;white-space:pre-line;
+          display:none;line-height:1.5}
+  .notice.show{display:block}
+  .notice.error{background:rgba(196,105,94,.12);border:1px solid rgba(196,105,94,.42);color:#e8a79f}
+  .notice.warn {background:rgba(196,160,94,.10);border:1px solid rgba(196,160,94,.38);color:#ddbe8a}
+  .notice.ok   {background:rgba(176,141,87,.10);border:1px solid rgba(176,141,87,.35);color:var(--accent)}
+
+  /* ── 미리보기 ── */
+  .stage{background:var(--panel);border:1px solid var(--line);border-radius:4px;padding:20px;
+         display:flex;flex-direction:column;align-items:center;gap:12px}
+  .stage.drag{border-color:var(--accent);border-style:dashed}
+  .canvas-wrap{position:relative;display:inline-block;max-width:100%}
+  canvas{max-width:100%;max-height:calc(100vh - 205px);width:auto;height:auto;border:1px solid var(--line);
+         background:#000;display:block}
+  /* 안내선은 캔버스가 아니라 그 위를 덮는 요소에 그린다 → 저장 파일에는 절대 남지 않는다 */
+  .guides{position:absolute;inset:0;pointer-events:none;display:none}
+  .guides.on{display:block}
+  .guides::before{content:"";position:absolute;inset:7%;border:1px dashed rgba(176,141,87,.55)}
+  .guides::after{content:"";position:absolute;left:50%;top:0;bottom:0;width:1px;
+                 background:rgba(176,141,87,.35)}
+  .ratios{display:flex;gap:6px}
+  .ratios .btn{padding:6px 16px}
+  .thumbs{display:flex;gap:14px;align-items:flex-end;margin-top:2px}
+  .thumb{display:flex;flex-direction:column;align-items:center;gap:4px;cursor:pointer}
+  .thumb canvas{border:1px solid var(--line);max-height:124px;max-width:none}
+  .thumb:hover canvas{border-color:var(--accent)}
+  .thumb span{font-size:10.5px;color:var(--ink-dim)}
+  .thumb.on canvas{border-color:var(--accent)}
+  .save-btn{width:100%;max-width:320px;margin-top:6px;padding:10px 0}
+  .stage-meta{font-size:11.5px;color:var(--ink-dim);font-variant-numeric:tabular-nums}
+  .hint{font-size:11.5px;color:var(--ink-dim);text-align:center}
+
+  /* ── 미리보기 아래 도구 ── */
+  .tools > .panel + .panel{margin-top:12px}
+  .tnote{font-size:11px;color:var(--ink-dim);margin-top:8px;line-height:1.55}
+  input[type=text]{flex:1;min-width:0;background:var(--panel-2);border:1px solid var(--line);
+                   color:var(--ink);border-radius:3px;padding:7px 9px;font-family:inherit;font-size:13px}
+  input[type=text]:focus{outline:1px solid var(--accent);outline-offset:-1px}
+  .tlist{margin-top:10px;display:flex;flex-direction:column;gap:6px}
+  .titem{background:var(--panel-2);border:1px solid var(--line);border-radius:3px;padding:8px 9px}
+  .titem.on{border-color:var(--accent)}
+  .tname{font-size:12.5px;line-height:1.35;word-break:break-all}
+  .tname span{display:block;font-size:10.5px;color:var(--ink-dim);margin-top:2px;
+              font-variant-numeric:tabular-nums}
+  .tbtns{display:flex;gap:4px;margin-top:7px}
+  .tbtns button{flex:1;background:transparent;border:1px solid var(--line);color:var(--ink-dim);
+                border-radius:3px;padding:4px 0;font-size:11px;cursor:pointer;font-family:inherit}
+  .tbtns button:hover{border-color:var(--accent);color:var(--accent)}
+  .tempty{font-size:11.5px;color:var(--ink-dim);padding:10px 0}
+</style>
+</head>
+<body>
+
+<header>
+  <h1>짤 · 카드 스튜디오</h1>
+  <p>이미지에 문구를 얹어 카드를 만듭니다 &nbsp;·&nbsp; PNG·JPEG · 1:1 4:5 9:16 · 템플릿 저장</p>
+</header>
+
+<main>
+  <!-- ── 왼쪽 ── -->
+  <div>
+    <section class="panel">
+      <h2>이미지</h2>
+      <button class="btn" id="pick" style="width:100%">파일 선택 (PNG · JPEG)</button>
+      <input type="file" id="file" accept="image/png,image/jpeg" hidden>
+      <div class="file-name" id="fname">아직 불러온 이미지가 없습니다</div>
+      <div class="notice" id="notice" role="status"></div>
+    </section>
+
+    <section class="panel">
+      <h2>문구</h2>
+      <textarea id="text" rows="4" placeholder="문구를 입력하세요"></textarea>
+      <label>쓰기 방향</label>
+      <div class="btn-group" id="dir">
+        <button class="btn on" data-v="0">가로쓰기</button>
+        <button class="btn" data-v="1">세로쓰기</button>
+      </div>
+    </section>
+
+    <section class="panel">
+      <h2>문구 꾸미기</h2>
+
+      <label>정렬</label>
+      <div class="btn-group" id="align">
+        <button class="btn" data-a="left">왼쪽</button>
+        <button class="btn on" data-a="center">가운데</button>
+        <button class="btn" data-a="right">오른쪽</button>
+      </div>
+
+      <label>좌우 이동</label>
+      <div class="row"><input type="range" id="x" min="0" max="100" value="50"><span class="val" id="xv">0</span></div>
+
+      <label>상하 이동</label>
+      <div class="row"><input type="range" id="y" min="0" max="100" value="50"><span class="val" id="yv">0</span></div>
+
+      <label>글자 크기</label>
+      <div class="row"><input type="range" id="size" min="20" max="160" value="62"><span class="val" id="sizev">62</span></div>
+
+      <label>줄 간격</label>
+      <div class="row"><input type="range" id="lh" min="100" max="220" value="145"><span class="val" id="lhv">1.45</span></div>
+
+      <label>글자 색</label>
+      <div class="row" style="gap:9px">
+        <input type="color" id="color" value="#f2e8d5">
+        <div class="swatches" id="sw"></div>
+      </div>
+    </section>
+    <section class="panel">
+      <h2>보기 · 되돌리기</h2>
+      <button class="btn" id="gtoggle" style="width:100%">안내선 보기</button>
+      <div style="font-size:11.5px;color:var(--ink-dim);margin-top:7px">
+        안내선은 화면에만 표시되고 저장 파일에는 들어가지 않습니다.
+      </div>
+      <label>되돌리기</label>
+      <div class="btn-group">
+        <button class="btn" id="undo">← 실행 취소</button>
+        <button class="btn" id="redo">다시 실행 →</button>
+      </div>
+      <button class="btn" id="reset" style="width:100%;margin-top:11px">문구 설정 처음으로</button>
+    </section>
+
+  </div>
+
+  <!-- ── 가운데: 미리보기 ── -->
+  <section class="stage" id="stage">
+      <div class="ratios" id="ratio">
+        <button class="btn on" data-r="1:1">1 : 1</button>
+        <button class="btn" data-r="4:5">4 : 5</button>
+        <button class="btn" data-r="9:16">9 : 16</button>
+      </div>
+      <div class="canvas-wrap">
+        <canvas id="cv"></canvas>
+        <div class="guides" id="guides"></div>
+      </div>
+      <div class="stage-meta" id="meta"></div>
+      <div class="thumbs" id="thumbs"></div>
+      <button class="btn save-btn" id="save">PNG로 저장</button>
+      <div class="hint">이미지를 이 영역에 끌어다 놓아도 됩니다 &nbsp;·&nbsp; 방향키로 문구 미세 이동</div>
+  </section>
+
+  <!-- ── 오른쪽: 도구 ── -->
+  <div class="tools">
+      <section class="panel">
+        <h2>가독성</h2>
+        <label>그림자</label>
+        <div class="row"><input type="range" id="shadow" min="0" max="60" value="0"><span class="val" id="shadowv">0</span></div>
+        <label>글자 테두리</label>
+        <div class="row"><input type="range" id="stroke" min="0" max="24" value="0"><span class="val" id="strokev">0</span></div>
+        <label>테두리 색</label>
+        <div class="row" style="gap:9px">
+          <input type="color" id="strokeColor" value="#14110e">
+          <span style="font-size:11.5px;color:var(--ink-dim)">복잡한 배경에서 글자를 살립니다</span>
+        </div>
+        <label>배경 어둡게</label>
+        <div class="row"><input type="range" id="overlay" min="0" max="85" value="0"><span class="val" id="overlayv">0%</span></div>
+      </section>
+
+      <section class="panel">
+        <h2>이미지 맞추기</h2>
+        <label>확대</label>
+        <div class="row"><input type="range" id="iscale" min="100" max="300" value="100"><span class="val" id="iscalev">100%</span></div>
+        <label id="ixl">가로 위치</label>
+        <div class="row" id="ixr"><input type="range" id="ix" min="0" max="100" value="50"><span class="val" id="ixv">50%</span></div>
+        <label id="iyl">세로 위치</label>
+        <div class="row" id="iyr"><input type="range" id="iy" min="0" max="100" value="50"><span class="val" id="iyv">50%</span></div>
+        <div class="fitnote" id="ifit"></div>
+        <button class="btn" id="ireset" style="width:100%;margin-top:9px">이미지 맞춤 초기화</button>
+      </section>
+
+      <section class="panel">
+        <h2>템플릿</h2>
+        <div class="row" style="gap:6px">
+          <input type="text" id="tname" placeholder="템플릿 이름" maxlength="40">
+          <button class="btn" id="tsave">저장</button>
+        </div>
+        <div class="tlist" id="tlist"></div>
+        <div class="tnote">문구·위치·색·비율 설정만 저장됩니다. 배경 이미지는 저장되지 않습니다.</div>
+      </section>
+
+      <section class="panel">
+        <h2>템플릿 주고받기</h2>
+        <button class="btn" id="texport" style="width:100%">JSON으로 내보내기</button>
+        <button class="btn" id="timport" style="width:100%;margin-top:6px">JSON 가져오기</button>
+        <input type="file" id="tfile" accept="application/json,.json" hidden>
+        <div class="tnote">가져오기는 파일 전체를 먼저 검사합니다.
+          한 군데라도 잘못되어 있으면 아무것도 저장하지 않고 기존 목록을 그대로 둡니다.</div>
+      </section>
+  </div>
+</main>
+
+<script>
+(function(){
+  'use strict';
+
+  var RATIOS = {                          // 기준 폭은 셋 다 1080
+    '1:1' :{w:1080,h:1080},
+    '4:5' :{w:1080,h:1350},
+    '9:16':{w:1080,h:1920}
+  };
+  var SIZE = RATIOS['1:1'];
+  var PAD  = 0.07;                        // 안전 여백 (안내선과 같은 값)
+  var FONT = '"Nanum Myeongjo","Apple SD Gothic Neo",AppleMyungjo,Batang,바탕,serif';
+
+  var DEFAULTS = {
+    ratio:'1:1',
+    text:'달빛이 물결 위에\n조용히 부서진다',
+    x:50, y:50, align:'center', vertical:false,
+    size:62, lineHeight:1.45, color:'#f2e8d5',
+    shadow:0, stroke:0, strokeColor:'#14110e', overlay:0,
+    imgScale:100, imgX:50, imgY:50
+  };
+  var state = Object.assign({ img:null, imgName:null }, DEFAULTS);
+
+  var cv=document.getElementById('cv'), ctx=cv.getContext('2d');
+  var notice=document.getElementById('notice'), meta=document.getElementById('meta');
+
+  function showNotice(msg,kind){
+    // 경고는 성공 메시지보다 우선한다 (불러왔다는 안내가 경고를 덮지 않도록)
+    if(kind==='ok' && notice.classList.contains('warn')) return;
+    notice.textContent=msg;
+    notice.className='notice show '+(kind||'error');
+  }
+  function clearNotice(){ notice.className='notice'; notice.textContent=''; }
+
+  /* ── 글자 세기 ────────────────────────────────
+     이모지는 여러 조각이 모여 한 글자를 이룬다(가족 이모지는 5조각).
+     코드 단위로 자르면 한 글자가 쪼개지므로 자소 묶음 단위로 센다.   */
+  var SEG = (typeof Intl!=='undefined' && Intl.Segmenter)
+          ? new Intl.Segmenter('ko',{granularity:'grapheme'}) : null;
+  function graphemes(str){
+    if(!SEG) return Array.from(str);
+    var out=[], it=SEG.segment(str);
+    for(var seg of it) out.push(seg.segment);
+    return out;
+  }
+
+  /* 영문·숫자는 한 덩어리로, 나머지는 한 글자씩 */
+  function tokenize(para){
+    var gs=graphemes(para), out=[], buf='';
+    for(var i=0;i<gs.length;i++){
+      var g=gs[i];
+      if(g.length===1 && /[A-Za-z0-9]/.test(g)) buf+=g;
+      else { if(buf){ out.push(buf); buf=''; } out.push(g); }
+    }
+    if(buf) out.push(buf);
+    return out;
+  }
+
+  /* ── 가로쓰기 줄바꿈 ───────────────────────────── */
+  function wrapH(ctx,text,maxW){
+    var out=[], paras=text.split('\n');
+    for(var p=0;p<paras.length;p++){
+      var para=paras[p];
+      if(para===''){ out.push(''); continue; }
+
+      // 토큰 하나가 이미 한 줄보다 길면(긴 영단어 등) 글자 단위로 더 쪼갠다
+      var toks=tokenize(para), flat=[];
+      for(var q=0;q<toks.length;q++){
+        var tk=toks[q];
+        if(ctx.measureText(tk).width<=maxW){ flat.push(tk); continue; }
+        var gs=graphemes(tk), cur='';
+        for(var r=0;r<gs.length;r++){
+          if(cur!=='' && ctx.measureText(cur+gs[r]).width>maxW){ flat.push(cur); cur=gs[r]; }
+          else cur+=gs[r];
+        }
+        if(cur) flat.push(cur);
+      }
+
+      var line='';
+      for(var i=0;i<flat.length;i++){
+        var t=flat[i], test=line+t;
+        if(ctx.measureText(test).width>maxW && line!==''){
+          out.push(line.replace(/\s+$/,''));
+          line=t.replace(/^\s+/,'');
+        } else line=test;
+      }
+      out.push(line);
+    }
+    return out;
+  }
+
+  /* ── 세로쓰기 배치 : 글자는 위에서 아래로, 칸은 오른쪽에서 왼쪽으로 ── */
+  function wrapV(text,maxH,step){
+    var cols=[], paras=text.split('\n');
+    for(var p=0;p<paras.length;p++){
+      var chars=graphemes(paras[p]);
+      if(chars.length===0){ cols.push([]); continue; }
+      var col=[];
+      for(var i=0;i<chars.length;i++){
+        if(col.length>0 && (col.length+1)*step>maxH){ cols.push(col); col=[]; }
+        col.push(chars[i]);
+      }
+      cols.push(col);
+    }
+    return cols;
+  }
+
+  /* ── 가독성 검사 ────────────────────────────────
+     글자를 올리기 전에 그 자리의 배경을 표본으로 떠서,
+     글자색과의 밝기 대비가 낮은 픽셀이 얼마나 되는지 센다.        */
+  function lum(r,g,b){
+    var a=[r,g,b].map(function(v){ v/=255;
+      return v<=0.03928 ? v/12.92 : Math.pow((v+0.055)/1.055,2.4); });
+    return 0.2126*a[0]+0.7152*a[1]+0.0722*a[2];
+  }
+  function checkContrast(x,rect,W,H){
+    if(state.stroke>=3 || state.shadow>=10) return false;   // 이미 테두리·그림자로 분리함
+    var l=Math.max(0,Math.round(rect.l)), t=Math.max(0,Math.round(rect.t));
+    var w=Math.min(W-l,Math.round(rect.w)), h=Math.min(H-t,Math.round(rect.h));
+    if(w<4||h<4) return false;
+    var d;
+    try{ d=x.getImageData(l,t,w,h).data; }catch(e){ return false; }
+    var c=state.color;
+    var tl=lum(parseInt(c.slice(1,3),16),parseInt(c.slice(3,5),16),parseInt(c.slice(5,7),16));
+    var sx=Math.max(1,Math.floor(w/44)), sy=Math.max(1,Math.floor(h/44)), bad=0, tot=0;
+    for(var y=0;y<h;y+=sy) for(var xx=0;xx<w;xx+=sx){
+      var i=(y*w+xx)*4;
+      var bl=lum(d[i],d[i+1],d[i+2]);
+      var hi=Math.max(tl,bl), lo=Math.min(tl,bl);
+      if((hi+0.05)/(lo+0.05) < 2.6) bad++;
+      tot++;
+    }
+    return tot>0 && bad/tot > 0.25;
+  }
+
+  /* ── 단 하나의 그리기 함수 ──────────────────
+     어느 캔버스든, 어느 크기든 이 함수 하나로만 그린다.
+     화면 미리보기 · 세 비율 견본 · 저장 파일이 모두 여기서 나온다.
+     기준 폭 1080을 1로 보고 모든 치수를 배율 k로 맞춘다.          */
+  function drawScene(c,W,H,measure){
+    var x=c.getContext('2d');
+    c.width=W; c.height=H;
+    var k=W/1080;
+
+    var g=x.createLinearGradient(0,0,0,H);
+    g.addColorStop(0,'#1a1613'); g.addColorStop(1,'#0d0b0a');
+    x.fillStyle=g; x.fillRect(0,0,W,H);
+
+    if(state.img){
+      var im=state.img;
+      var sc=Math.max(W/im.width,H/im.height)*(state.imgScale/100);
+      var dw=im.width*sc, dh=im.height*sc;
+      x.drawImage(im,(W-dw)*(state.imgX/100),(H-dh)*(state.imgY/100),dw,dh);
+    }
+
+    if(state.overlay>0){
+      x.fillStyle='rgba(0,0,0,'+(state.overlay/100)+')';
+      x.fillRect(0,0,W,H);
+    }
+
+    var overflow=false, lowContrast=false;
+    if(state.text!==''){
+      var padX=W*PAD, padY=H*PAD;
+      var boxL=padX, boxR=W-padX, boxT=padY, boxB=H-padY;
+      var offX=(state.x-50)/100*W, offY=(state.y-50)/100*H;
+      var fs=state.size*k;
+
+      x.font=fs+'px '+FONT;
+      x.fillStyle=state.color;
+      x.textBaseline='middle';
+      x.lineJoin='round'; x.miterLimit=2;
+
+      var rect, draw;
+
+      if(!state.vertical){
+        x.textAlign=state.align;
+        var lines=wrapH(x,state.text,boxR-boxL);
+        var lineH=fs*state.lineHeight;
+        var anchorX = state.align==='left'?boxL : state.align==='right'?boxR : W/2;
+        var cx=anchorX+offX;
+        var blockH=lines.length*lineH;
+        var top=H/2+offY-blockH/2+lineH/2;
+
+        var wid=0;
+        for(var j=0;j<lines.length;j++) wid=Math.max(wid,x.measureText(lines[j]).width);
+        var lft = state.align==='left'?cx : state.align==='right'?cx-wid : cx-wid/2;
+
+        rect={l:lft, t:top-lineH/2, w:wid, h:blockH};
+        draw=function(paint){ for(var i=0;i<lines.length;i++) paint(lines[i],cx,top+i*lineH); };
+
+      } else {
+        x.textAlign='center';
+        var step=fs*1.12, colStep=fs*state.lineHeight;
+        var cols=wrapV(state.text,boxB-boxT,step);
+        var blockW=cols.length*colStep;
+        var anchorR = state.align==='left'?boxL+blockW : state.align==='right'?boxR : W/2+blockW/2;
+        var rightEdge=anchorR+offX;
+
+        var maxLen=0;
+        for(var a2=0;a2<cols.length;a2++) maxLen=Math.max(maxLen,cols[a2].length);
+        var vTop=H/2+offY-(maxLen*step)/2+step/2;
+
+        rect={l:rightEdge-blockW, t:vTop-step/2, w:blockW, h:maxLen*step};
+        draw=function(paint){
+          for(var b2=0;b2<cols.length;b2++){
+            var colX=rightEdge-(b2+0.5)*colStep;
+            for(var m=0;m<cols[b2].length;m++) paint(cols[b2][m],colX,vTop+m*step);
+          }
+        };
+      }
+
+      overflow = rect.l<0 || rect.t<0 || rect.l+rect.w>W || rect.t+rect.h>H;
+
+      // 글자를 올리기 전에 그 자리의 배경을 본다 (미리보기 캔버스에서만)
+      if(measure) lowContrast=checkContrast(x,rect,W,H);
+
+      draw(function(ch,px,py){
+        if(state.shadow>0){ x.shadowColor='rgba(0,0,0,.8)'; x.shadowBlur=state.shadow*k; }
+        if(state.stroke>0){
+          x.lineWidth=state.stroke*k; x.strokeStyle=state.strokeColor;
+          x.strokeText(ch,px,py);
+        }
+        x.shadowBlur=0;
+        x.fillText(ch,px,py);
+      });
+      x.shadowBlur=0;
+    }
+    return {overflow:overflow, lowContrast:lowContrast};
+  }
+
+  /* 화면 미리보기 = 출력 해상도 캔버스를 CSS로 줄인 것 */
+  var thumbs=[], thumbTimer=null;
+  function render(){
+    var res=drawScene(cv,SIZE.w,SIZE.h,true);
+    meta.textContent=SIZE.w+' × '+SIZE.h+' px  ·  '+state.ratio
+                   +(state.imgName?'  ·  '+state.imgName:'');
+
+    updateFit();
+    clearTimeout(thumbTimer);
+    thumbTimer=setTimeout(renderThumbs,140);
+
+    if(res.overflow)
+      showNotice('문구가 카드 밖으로 넘칩니다. 글자 크기를 줄이거나 위치를 옮겨 주세요.','warn');
+    else if(res.lowContrast)
+      showNotice('글자가 배경 무늬에 묻힙니다. 글자 테두리를 올리거나 배경 어둡게를 써 보세요.','warn');
+    else if(notice.classList.contains('warn')) clearNotice();
+  }
+
+  /* 이미지를 좌우·상하로 움직일 여유가 실제로 있는지 알려준다.
+     '꽉 채우기'로 넣기 때문에 한쪽 변은 늘 딱 맞아서 여유가 0이 된다.   */
+  function updateFit(){
+    var ix=document.getElementById('ix'), iy=document.getElementById('iy');
+    var note=document.getElementById('ifit');
+
+    function lock(el,labId,rowId,off){
+      el.disabled=off;
+      document.getElementById(labId).classList.toggle('dim',off);
+      document.getElementById(rowId).classList.toggle('dim',off);
+    }
+
+    if(!state.img){
+      lock(ix,'ixl','ixr',true); lock(iy,'iyl','iyr',true);
+      note.textContent='이미지를 불러오면 여기서 위치를 맞출 수 있습니다.';
+      return;
+    }
+    var W=SIZE.w, H=SIZE.h, im=state.img;
+    var sc=Math.max(W/im.width,H/im.height)*(state.imgScale/100);
+    var slackX=Math.round(im.width*sc-W), slackY=Math.round(im.height*sc-H);
+
+    lock(ix,'ixl','ixr',slackX<2);
+    lock(iy,'iyl','iyr',slackY<2);
+
+    var txt='움직일 여유 — 좌우 '+Math.max(0,slackX)+'px · 상하 '+Math.max(0,slackY)+'px';
+    if(slackX<2&&slackY<2)      txt+='\n이미지가 카드에 딱 맞아 움직일 곳이 없습니다. 확대를 올려 보세요.';
+    else if(slackX<2)           txt+='\n세로로만 움직일 수 있습니다. 좌우로도 움직이려면 확대를 올리세요.';
+    else if(slackY<2)           txt+='\n가로로만 움직일 수 있습니다. 상하로도 움직이려면 확대를 올리세요.';
+    note.textContent=txt;
+  }
+
+  /* 세 비율 견본 — 같은 drawScene을 작은 크기로 부른 것뿐 */
+  function renderThumbs(){
+    for(var i=0;i<thumbs.length;i++){
+      var r=RATIOS[thumbs[i].ratio], H=124, W=Math.round(H*r.w/r.h);
+      drawScene(thumbs[i].cv,W,H,false);
+      thumbs[i].box.classList.toggle('on',thumbs[i].ratio===state.ratio);
+    }
+  }
+
+  /* ── 이미지 불러오기 ───────────────────────────
+     ① 형식 → ② 파일 구조 → ③ 실제 디코딩
+     세 관문을 모두 통과했을 때만 기존 이미지를 교체한다.      */
+  var ALLOWED_TYPE=['image/png','image/jpeg'], ALLOWED_EXT=['png','jpg','jpeg'];
+
+  function isComplete(buf,type){
+    var u8=new Uint8Array(buf);
+    if(u8.length<24) return false;
+    if(type==='image/png'){
+      if(!(u8[0]===0x89&&u8[1]===0x50&&u8[2]===0x4E&&u8[3]===0x47)) return false;
+      var t=''; for(var i=Math.max(0,u8.length-12);i<u8.length;i++) t+=String.fromCharCode(u8[i]);
+      return t.indexOf('IEND')!==-1;                       // 종료 표시가 있어야 온전한 파일
+    }
+    if(!(u8[0]===0xFF&&u8[1]===0xD8)) return false;
+    for(var j=u8.length-2;j>=Math.max(0,u8.length-64);j--) // JPEG 종료 표시 FFD9
+      if(u8[j]===0xFF&&u8[j+1]===0xD9) return true;
+    return false;
+  }
+
+  function loadImage(file){
+    if(!file) return;
+    var ext=(file.name.split('.').pop()||'').toLowerCase();
+
+    if(ALLOWED_TYPE.indexOf(file.type)===-1||ALLOWED_EXT.indexOf(ext)===-1){
+      showNotice('이 파일은 사용할 수 없습니다. ('+(file.type||'형식 알 수 없음')+')\n'
+        +'PNG 또는 JPEG 이미지만 불러올 수 있습니다. 기존 작업은 그대로 두었습니다.','error');
+      return;
+    }
+
+    document.getElementById('fname').textContent='불러오는 중…';
+
+    file.arrayBuffer().then(function(buf){
+      if(!isComplete(buf,file.type))
+        throw new Error('파일이 중간에 잘렸습니다 (종료 표시 없음)');
+      return createImageBitmap(new Blob([buf],{type:file.type}));
+    }).then(function(bmp){
+      state.img=bmp; state.imgName=file.name;              // 여기서 처음으로 교체
+      document.getElementById('fname').textContent=
+        file.name+' · '+bmp.width+' × '+bmp.height+' px';
+      clearNotice();
+      render();                                            // 경고가 필요하면 여기서 뜬다
+    }).catch(function(err){
+      document.getElementById('fname').textContent=
+        state.imgName ? state.imgName : '아직 불러온 이미지가 없습니다';
+      showNotice('이미지 파일이 손상되어 불러오지 못했습니다.\n'
+        +'('+err.message+')\n'
+        +'이전 이미지와 편집 내용은 그대로 두었습니다.','error');
+    });
+  }
+
+  /* ── 되돌리기 ─────────────────────────────── */
+  var history=[], future=[];
+  function snapshot(){
+    var s=Object.assign({},state); delete s.img;
+    history.push(JSON.stringify(s));
+    if(history.length>60) history.shift();
+    future.length=0;
+  }
+  function restore(json){
+    var s=JSON.parse(json);
+    Object.keys(s).forEach(function(k){ state[k]=s[k]; });
+    syncControls(); render();
+  }
+  document.getElementById('undo').addEventListener('click',function(){
+    if(history.length<2) return;
+    future.push(history.pop());
+    restore(history[history.length-1]);
+  });
+  document.getElementById('redo').addEventListener('click',function(){
+    if(!future.length) return;
+    var j=future.pop(); history.push(j); restore(j);
+  });
+
+  /* ── 조작판 연결 ───────────────────────────── */
+  var RANGES=[
+    ['x','x',function(v){return (v-50>0?'+':'')+(v-50)},null],
+    ['y','y',function(v){return (v-50>0?'+':'')+(v-50)},null],
+    ['size','size',function(v){return String(v)},null],
+    ['lh','lineHeight',function(v){return (v/100).toFixed(2)},0.01],
+    ['shadow','shadow',function(v){return String(v)},null],
+    ['stroke','stroke',function(v){return String(v)},null],
+    ['overlay','overlay',function(v){return v+'%'},null],
+    ['iscale','imgScale',function(v){return v+'%'},null],
+    ['ix','imgX',function(v){return v+'%'},null],
+    ['iy','imgY',function(v){return v+'%'},null]
+  ];
+  RANGES.forEach(function(r){
+    var el=document.getElementById(r[0]), out=document.getElementById(r[0]+'v');
+    el.addEventListener('input',function(){
+      var v=Number(el.value);
+      state[r[1]]=r[3]?v*r[3]:v;
+      out.textContent=r[2](v);
+      render();
+    });
+    el.addEventListener('change',snapshot);
+  });
+
+  function syncControls(){
+    SIZE=RATIOS[state.ratio]||RATIOS['1:1'];
+    [].forEach.call(document.getElementById('ratio').children,function(c){
+      c.classList.toggle('on',c.dataset.r===state.ratio);
+    });
+    RANGES.forEach(function(r){
+      var el=document.getElementById(r[0]), out=document.getElementById(r[0]+'v');
+      var v=r[3]?Math.round(state[r[1]]/r[3]):state[r[1]];
+      el.value=v; out.textContent=r[2](v);
+    });
+    document.getElementById('text').value=state.text;
+    document.getElementById('color').value=state.color;
+    document.getElementById('strokeColor').value=state.strokeColor;
+    [].forEach.call(document.getElementById('align').children,function(c){
+      c.classList.toggle('on',c.dataset.a===state.align);
+    });
+    [].forEach.call(document.getElementById('dir').children,function(c){
+      c.classList.toggle('on',(c.dataset.v==='1')===state.vertical);
+    });
+  }
+
+  var ta=document.getElementById('text');
+  ta.value=state.text;
+  ta.addEventListener('input',function(){ state.text=ta.value; render(); });
+  ta.addEventListener('change',snapshot);
+
+  document.getElementById('align').addEventListener('click',function(e){
+    var b=e.target.closest('button'); if(!b) return;
+    state.align=b.dataset.a;
+    [].forEach.call(this.children,function(c){ c.classList.toggle('on',c===b) });
+    render(); snapshot();
+  });
+  document.getElementById('dir').addEventListener('click',function(e){
+    var b=e.target.closest('button'); if(!b) return;
+    state.vertical=(b.dataset.v==='1');
+    [].forEach.call(this.children,function(c){ c.classList.toggle('on',c===b) });
+    render(); snapshot();
+  });
+
+  var colorInput=document.getElementById('color');
+  colorInput.addEventListener('input',function(){ state.color=colorInput.value; render(); });
+  colorInput.addEventListener('change',snapshot);
+  var strokeColor=document.getElementById('strokeColor');
+  strokeColor.addEventListener('input',function(){ state.strokeColor=strokeColor.value; render(); });
+  strokeColor.addEventListener('change',snapshot);
+
+  ['#f2e8d5','#ffffff','#b08d57','#c4695e','#8a9a8b','#1a1613'].forEach(function(c){
+    var s=document.createElement('div');
+    s.className='sw'; s.style.background=c; s.title=c;
+    s.addEventListener('click',function(){
+      state.color=c; colorInput.value=c; render(); snapshot();
+    });
+    document.getElementById('sw').appendChild(s);
+  });
+
+  document.getElementById('ireset').addEventListener('click',function(){
+    state.imgScale=100; state.imgX=50; state.imgY=50;
+    syncControls(); render(); snapshot();
+  });
+  document.getElementById('reset').addEventListener('click',function(){
+    Object.keys(DEFAULTS).forEach(function(k){ state[k]=DEFAULTS[k]; });
+    syncControls(); render(); snapshot();
+  });
+
+  /* 비율 전환 */
+  document.getElementById('ratio').addEventListener('click',function(e){
+    var b=e.target.closest('button'); if(!b) return;
+    state.ratio=b.dataset.r;
+    SIZE=RATIOS[state.ratio];
+    [].forEach.call(this.children,function(c){ c.classList.toggle('on',c===b) });
+    render(); renderThumbs(); snapshot();
+  });
+
+  /* 세 비율 견본 만들기 */
+  ['1:1','4:5','9:16'].forEach(function(r){
+    var box=document.createElement('div'); box.className='thumb'; box.title=r+' 로 바꾸기';
+    var c=document.createElement('canvas');
+    var lab=document.createElement('span'); lab.textContent=r;
+    box.appendChild(c); box.appendChild(lab);
+    box.addEventListener('click',function(){
+      document.querySelector('#ratio button[data-r="'+r+'"]').click();
+    });
+    document.getElementById('thumbs').appendChild(box);
+    thumbs.push({ratio:r,cv:c,box:box});
+  });
+
+  /* PNG 저장 — 화면에 보이는 그 캔버스를 그대로 파일로 */
+  function stamp(){
+    var d=new Date(), z=function(n){ return ('0'+n).slice(-2) };
+    return d.getFullYear()+z(d.getMonth()+1)+z(d.getDate())+'_'+z(d.getHours())+z(d.getMinutes());
+  }
+  document.getElementById('save').addEventListener('click',function(){
+    cv.toBlob(function(blob){
+      if(!blob){ showNotice('저장에 실패했습니다.','error'); return; }
+      var name='card_'+state.ratio.replace(':','x')+'_'+stamp()+'.png';
+      var a=document.createElement('a');
+      a.href=URL.createObjectURL(blob); a.download=name;
+      document.body.appendChild(a); a.click(); a.remove();
+      setTimeout(function(){ URL.revokeObjectURL(a.href) },2000);
+      showNotice('저장했습니다 · '+name+'\n'+SIZE.w+' × '+SIZE.h+' px','ok');
+    },'image/png');
+  });
+
+  var guides=document.getElementById('guides');
+  document.getElementById('gtoggle').addEventListener('click',function(){
+    guides.classList.toggle('on');
+    this.classList.toggle('on');
+  });
+
+  /* 방향키 미세 이동 */
+  document.addEventListener('keydown',function(e){
+    if(/^(INPUT|TEXTAREA)$/.test(document.activeElement.tagName)) return;
+    var step=e.shiftKey?5:1, moved=true;
+    if(e.key==='ArrowLeft')      state.x=Math.max(0,state.x-step);
+    else if(e.key==='ArrowRight')state.x=Math.min(100,state.x+step);
+    else if(e.key==='ArrowUp')   state.y=Math.max(0,state.y-step);
+    else if(e.key==='ArrowDown') state.y=Math.min(100,state.y+step);
+    else moved=false;
+    if(moved){ e.preventDefault(); syncControls(); render(); }
+  });
+
+  /* 파일 입력 · 끌어다 놓기 */
+  var fileInput=document.getElementById('file');
+  document.getElementById('pick').addEventListener('click',function(){ fileInput.click(); });
+  fileInput.addEventListener('change',function(e){ loadImage(e.target.files[0]); e.target.value=''; });
+
+  var stage=document.getElementById('stage');
+  ['dragenter','dragover'].forEach(function(ev){
+    stage.addEventListener(ev,function(e){ e.preventDefault(); stage.classList.add('drag'); });
+  });
+  ['dragleave','drop'].forEach(function(ev){
+    stage.addEventListener(ev,function(e){ e.preventDefault(); stage.classList.remove('drag'); });
+  });
+  stage.addEventListener('drop',function(e){
+    if(e.dataTransfer.files.length) loadImage(e.dataTransfer.files[0]);
+  });
+
+
+  /* ══ 템플릿 ═══════════════════════════════════
+     저장하는 것은 설정뿐이다. 목록에서 무엇을 고치고 지울지는
+     배열의 몇 번째인지가 아니라 항목마다 붙인 id로만 찾는다.       */
+  var TKEY='cardstudio.templates.v1';
+  var FIELDS=['ratio','text','x','y','align','vertical','size','lineHeight','color',
+              'shadow','stroke','strokeColor','overlay','imgScale','imgX','imgY'];
+  var REQUIRED=['ratio','text','size','color','align'];   // 이게 없으면 템플릿이 아니다
+  var templates=[], selectedId=null, storageOK=true;
+
+  function readStore(){
+    try{
+      var raw=localStorage.getItem(TKEY);
+      var v=raw?JSON.parse(raw):[];
+      templates=Array.isArray(v)?v:[];
+    }catch(e){ templates=[]; storageOK=false; }
+  }
+  function writeStore(){
+    try{ localStorage.setItem(TKEY,JSON.stringify(templates)); }
+    catch(e){
+      storageOK=false;
+      showNotice('이 브라우저에서는 템플릿을 저장할 수 없습니다. 화면을 닫으면 사라집니다.','error');
+    }
+  }
+  function newId(){
+    return 't_'+Date.now().toString(36)+'_'+Math.random().toString(36).slice(2,7);
+  }
+  function currentData(){
+    var d={}; for(var i=0;i<FIELDS.length;i++) d[FIELDS[i]]=state[FIELDS[i]];
+    return d;
+  }
+  function applyData(d){
+    for(var i=0;i<FIELDS.length;i++) if(d[FIELDS[i]]!==undefined) state[FIELDS[i]]=d[FIELDS[i]];
+    syncControls(); render(); renderThumbs(); snapshot();
+  }
+  function when(iso){
+    var d=new Date(iso), z=function(n){return ('0'+n).slice(-2)};
+    return (d.getMonth()+1)+'월 '+d.getDate()+'일 '+z(d.getHours())+':'+z(d.getMinutes());
+  }
+
+  function renderTemplates(){
+    var box=document.getElementById('tlist');
+    box.innerHTML='';
+    if(!templates.length){
+      box.innerHTML='<div class="tempty">저장된 템플릿이 없습니다.</div>';
+      return;
+    }
+    templates.forEach(function(t){
+      var el=document.createElement('div');
+      el.className='titem'+(t.id===selectedId?' on':'');
+      var nm=document.createElement('div');
+      nm.className='tname';
+      nm.textContent=t.name;
+      var sub=document.createElement('span');
+      sub.textContent=(t.data.ratio||'?')+' · '+(t.updatedAt?when(t.updatedAt):'');
+      nm.appendChild(sub);
+      var btns=document.createElement('div');
+      btns.className='tbtns';
+      [['load','불러오기'],['update','수정'],['del','삭제']].forEach(function(a){
+        var b=document.createElement('button');
+        b.dataset.act=a[0]; b.dataset.id=t.id; b.textContent=a[1];
+        btns.appendChild(b);
+      });
+      el.appendChild(nm); el.appendChild(btns);
+      box.appendChild(el);
+    });
+  }
+
+  document.getElementById('tsave').addEventListener('click',function(){
+    var inp=document.getElementById('tname');
+    var name=inp.value.trim();
+    if(!name){ showNotice('템플릿 이름을 입력해 주세요.','error'); inp.focus(); return; }
+    var t={ id:newId(), name:name, updatedAt:new Date().toISOString(), data:currentData() };
+    templates.push(t); writeStore();
+    selectedId=t.id; inp.value='';
+    renderTemplates();
+    showNotice('템플릿을 저장했습니다 · '+name,'ok');
+  });
+
+  document.getElementById('tlist').addEventListener('click',function(e){
+    var b=e.target.closest('button'); if(!b) return;
+    var id=b.dataset.id;
+    var idx=-1;
+    for(var i=0;i<templates.length;i++) if(templates[i].id===id) idx=i;   // id로만 찾는다
+    if(idx<0){ showNotice('그 템플릿을 찾을 수 없습니다.','error'); renderTemplates(); return; }
+    var t=templates[idx];
+
+    if(b.dataset.act==='load'){
+      selectedId=id; applyData(t.data); renderTemplates();
+      showNotice('불러왔습니다 · '+t.name,'ok');
+
+    }else if(b.dataset.act==='update'){
+      t.data=currentData(); t.updatedAt=new Date().toISOString();
+      writeStore(); selectedId=id; renderTemplates();
+      showNotice('현재 설정으로 수정했습니다 · '+t.name,'ok');
+
+    }else if(b.dataset.act==='del'){
+      if(!confirm('"'+t.name+'" 템플릿을 지울까요?')) return;
+      templates.splice(idx,1); writeStore();
+      if(selectedId===id) selectedId=null;
+      renderTemplates();
+      showNotice('삭제했습니다 · '+t.name,'ok');
+    }
+  });
+
+  /* ══ JSON 주고받기 ════════════════════════════ */
+  function validateBundle(obj){
+    if(!obj||typeof obj!=='object'||Array.isArray(obj)) return '템플릿 묶음 모양이 아닙니다';
+    if(!Array.isArray(obj.templates))                   return 'templates 목록이 없습니다';
+    if(obj.templates.length===0)                        return '템플릿이 하나도 들어 있지 않습니다';
+    for(var i=0;i<obj.templates.length;i++){
+      var t=obj.templates[i], no=(i+1)+'번째 템플릿';
+      if(!t||typeof t!=='object')            return no+'의 모양이 올바르지 않습니다';
+      if(typeof t.name!=='string'||!t.name)  return no+'에 이름이 없습니다';
+      if(!t.data||typeof t.data!=='object')  return no+'에 설정(data)이 없습니다';
+      for(var j=0;j<REQUIRED.length;j++)
+        if(t.data[REQUIRED[j]]===undefined)
+          return no+'에 필수 항목 "'+REQUIRED[j]+'"가 없습니다';
+    }
+    return null;
+  }
+
+  document.getElementById('texport').addEventListener('click',function(){
+    if(!templates.length){ showNotice('내보낼 템플릿이 없습니다.','error'); return; }
+    var bundle={ format:'card-studio-templates', version:1,
+                 exportedAt:new Date().toISOString(), templates:templates };
+    var blob=new Blob([JSON.stringify(bundle,null,2)],{type:'application/json'});
+    var a=document.createElement('a');
+    a.href=URL.createObjectURL(blob);
+    a.download='card-templates_'+stamp()+'.json';
+    document.body.appendChild(a); a.click(); a.remove();
+    setTimeout(function(){ URL.revokeObjectURL(a.href) },2000);
+    showNotice('템플릿 '+templates.length+'개를 내보냈습니다.','ok');
+  });
+
+  document.getElementById('timport').addEventListener('click',function(){
+    document.getElementById('tfile').click();
+  });
+  document.getElementById('tfile').addEventListener('change',function(e){
+    var f=e.target.files[0]; e.target.value='';
+    if(!f) return;
+    var before=templates.length;
+
+    f.text().then(function(txt){
+      var obj;
+      try{ obj=JSON.parse(txt); }
+      catch(err){
+        throw new Error('문법이 손상된 JSON입니다 ('+err.message.split('\n')[0]+')');
+      }
+      var bad=validateBundle(obj);
+      if(bad) throw new Error(bad);
+
+      // 여기까지 통과했을 때만 저장한다
+      var added=0, updated=0;
+      obj.templates.forEach(function(t){
+        var id=(typeof t.id==='string'&&t.id)?t.id:newId();
+        var found=-1;
+        for(var i=0;i<templates.length;i++) if(templates[i].id===id) found=i;
+        var item={ id:id, name:t.name,
+                   updatedAt:t.updatedAt||new Date().toISOString(), data:t.data };
+        if(found>=0){ templates[found]=item; updated++; } else { templates.push(item); added++; }
+      });
+      writeStore(); renderTemplates();
+      showNotice('가져왔습니다 · 새로 '+added+'개, 덮어씀 '+updated+'개 (총 '+templates.length+'개)','ok');
+    }).catch(function(err){
+      showNotice('가져오지 못했습니다.\n'+err.message+'\n기존 템플릿 '+before+'개는 그대로 있습니다.','error');
+    });
+  });
+
+  readStore();
+  renderTemplates();
+
+  /* 첫 그리기 — 글꼴이 준비된 뒤에 그려야 줄바꿈 폭이 맞는다 */
+  syncControls();
+  if(document.fonts&&document.fonts.ready) document.fonts.ready.then(render);
+  render();
+  renderThumbs();
+  snapshot();
+})();
+</script>
+</body>
+</html>

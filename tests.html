@@ -1,0 +1,218 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>T05 고정 검사 10개 · 템플릿 가져오기 값 검사</title>
+<style>
+  :root{--bg:#141210;--fg:#ece4d6;--dim:#9a9083;--line:#2e2924;--ok:#8fbf8a;--bad:#e08b80}
+  *{box-sizing:border-box}
+  body{margin:0;background:var(--bg);color:var(--fg);font:14px/1.6 "Apple SD Gothic Neo","Malgun Gothic",sans-serif;padding:24px 16px}
+  main{max-width:980px;margin:0 auto}
+  h1{font-size:20px;margin:0 0 4px}
+  p{color:var(--dim);margin:0 0 14px}
+  button{background:#2a241f;color:var(--fg);border:1px solid #4a4038;padding:9px 18px;border-radius:4px;font-size:14px;cursor:pointer}
+  button:disabled{opacity:.5;cursor:default}
+  #sum{font-size:22px;font-weight:700;margin:16px 0 4px}
+  #runline{font-family:ui-monospace,Consolas,monospace;font-size:12.5px;color:var(--dim);user-select:all}
+  .wrap{overflow-x:auto}
+  table{border-collapse:collapse;width:100%;margin-top:14px;min-width:720px}
+  th,td{border-bottom:1px solid var(--line);padding:8px 6px;text-align:left;vertical-align:top}
+  th{color:var(--dim);font-weight:600;font-size:12.5px}
+  td.id{font-family:ui-monospace,Consolas,monospace;white-space:nowrap}
+  td.r{font-weight:700;white-space:nowrap}
+  .PASS{color:var(--ok)} .FAIL{color:var(--bad)}
+  .why{color:var(--dim);font-size:12px;white-space:pre-line}
+  iframe{position:absolute;left:-9999px;top:0;width:1280px;height:900px;border:0}
+</style>
+</head>
+<body>
+<main>
+  <h1>T05 고정 검사 10개</h1>
+  <p>대상: 같은 폴더의 <code>index.html</code>(짤·카드 스튜디오)의 "템플릿 가져오기".<br>
+     이 파일은 작업 시작 전에 고정했습니다. 검사를 지우거나, 느슨하게 하거나, 기대값을 바꾸지 않습니다.<br>
+     실행 전 브라우저의 기존 템플릿 저장값을 따로 보관했다가, 검사가 끝나면 되돌려 놓습니다.</p>
+  <button id="run">검사 실행</button>
+  <div id="sum">아직 실행하지 않았습니다</div>
+  <div id="runline"></div>
+  <div class="wrap">
+  <table>
+    <thead><tr><th>ID</th><th>입력 (가져오는 JSON)</th><th>기대값 (눈에 보이는 결과)</th><th>결과</th></tr></thead>
+    <tbody id="rows"></tbody>
+  </table>
+  </div>
+</main>
+
+<script>
+(function(){
+  var SUITE = 'T05-SUITE-v1';
+  var KEY = 'cardstudio.templates.v1';
+
+  /* ── 입력 재료 ─────────────────────────────── */
+  function good(over){
+    var d = { ratio:'1:1', text:'달빛이 물결 위에\n조용히 부서진다', x:50, y:50,
+      align:'center', vertical:false, size:62, lineHeight:1.45, color:'#f2e8d5',
+      shadow:0, stroke:0, strokeColor:'#14110e', overlay:0, imgScale:100, imgX:50, imgY:50 };
+    for (var k in (over||{})) d[k] = over[k];
+    return d;
+  }
+  function tpl(id, name, data){ return { id:id, name:name, updatedAt:'2026-09-17T00:00:00.000Z', data:data }; }
+  function bundle(list){
+    return JSON.stringify({ format:'card-studio-templates', version:1,
+      exportedAt:'2026-09-17T00:00:00.000Z', templates:list }, null, 2);
+  }
+  // 모든 검사는 "이미 저장된 템플릿 1개"가 있는 상태에서 시작한다
+  var SEED = [ tpl('t_seed', '기존 템플릿', good()) ];
+
+  var missingColor = good(); delete missingColor.color;
+
+  var TESTS = [
+    { id:'T05-01', input:'정상 템플릿 3개 (값이 모두 올바름)',
+      expect:'성공 안내 "가져왔습니다" · 저장된 템플릿 1개 → 4개',
+      json: bundle([ tpl('a1','가',good()), tpl('a2','나',good({ratio:'4:5'})), tpl('a3','다',good({ratio:'9:16',vertical:true})) ]),
+      want:{ kind:'ok', count:4, has:['가져왔습니다'] } },
+
+    { id:'T05-02', input:'문법이 깨진 JSON (끝 괄호 없음)',
+      expect:'오류 안내 "문법이 손상된 JSON" · 기존 1개 그대로',
+      json: bundle([ tpl('b1','가',good()) ]).slice(0,-3),
+      want:{ kind:'error', count:1, has:['문법이 손상된 JSON','기존 템플릿 1개는 그대로'] } },
+
+    { id:'T05-03', input:'2번째 템플릿에 color 항목 없음',
+      expect:'오류 안내에 "2번째 템플릿"과 "color" · 기존 1개 그대로',
+      json: bundle([ tpl('c1','가',good()), tpl('c2','나',missingColor) ]),
+      want:{ kind:'error', count:1, has:['2번째 템플릿','"color"','기존 템플릿 1개는 그대로'] } },
+
+    { id:'T05-04', input:'ratio가 "3:2" (없는 비율)',
+      expect:'오류 안내에 "1번째 템플릿"과 "ratio" · 기존 1개 그대로',
+      json: bundle([ tpl('d1','가',good({ratio:'3:2'})) ]),
+      want:{ kind:'error', count:1, has:['1번째 템플릿','"ratio"','기존 템플릿 1개는 그대로'] } },
+
+    { id:'T05-05', input:'color가 "red" (#RRGGBB 형식 아님)',
+      expect:'오류 안내에 "1번째 템플릿"과 "color" · 기존 1개 그대로',
+      json: bundle([ tpl('e1','가',good({color:'red'})) ]),
+      want:{ kind:'error', count:1, has:['1번째 템플릿','"color"','기존 템플릿 1개는 그대로'] } },
+
+    { id:'T05-06', input:'size가 문자 "크게"',
+      expect:'오류 안내에 "1번째 템플릿"과 "size" · 기존 1개 그대로',
+      json: bundle([ tpl('f1','가',good({size:'크게'})) ]),
+      want:{ kind:'error', count:1, has:['1번째 템플릿','"size"','기존 템플릿 1개는 그대로'] } },
+
+    { id:'T05-07', input:'text가 숫자 123',
+      expect:'오류 안내에 "1번째 템플릿"과 "text" · 기존 1개 그대로',
+      json: bundle([ tpl('g1','가',good({text:123})) ]),
+      want:{ kind:'error', count:1, has:['1번째 템플릿','"text"','기존 템플릿 1개는 그대로'] } },
+
+    { id:'T05-08', input:'align이 "middle" (left·center·right 아님)',
+      expect:'오류 안내에 "1번째 템플릿"과 "align" · 기존 1개 그대로',
+      json: bundle([ tpl('h1','가',good({align:'middle'})) ]),
+      want:{ kind:'error', count:1, has:['1번째 템플릿','"align"','기존 템플릿 1개는 그대로'] } },
+
+    { id:'T05-09', input:'경계값: size 20(최소)과 160(최대) 템플릿 2개',
+      expect:'성공 안내 "가져왔습니다" · 저장된 템플릿 1개 → 3개',
+      json: bundle([ tpl('i1','최소',good({size:20})), tpl('i2','최대',good({size:160})) ]),
+      want:{ kind:'ok', count:3, has:['가져왔습니다'] } },
+
+    { id:'T05-10', input:'3개 중 3번째만 size 161 (최대 초과)',
+      expect:'오류 안내에 "3번째 템플릿"과 "size" · 1·2번째도 저장 안 됨(기존 1개 그대로)',
+      json: bundle([ tpl('j1','가',good()), tpl('j2','나',good()), tpl('j3','다',good({size:161})) ]),
+      want:{ kind:'error', count:1, has:['3번째 템플릿','"size"','기존 템플릿 1개는 그대로'] } }
+  ];
+
+  /* ── 실행 도구 ─────────────────────────────── */
+  var rows = document.getElementById('rows');
+  TESTS.forEach(function(t){
+    var tr = document.createElement('tr');
+    tr.innerHTML = '<td class="id"></td><td></td><td></td><td class="r">-</td>';
+    tr.children[0].textContent = t.id;
+    tr.children[1].textContent = t.input;
+    tr.children[2].textContent = t.expect;
+    t.row = tr;
+    rows.appendChild(tr);
+  });
+
+  function sleep(ms){ return new Promise(function(r){ setTimeout(r, ms); }); }
+
+  function loadFrame(){
+    return new Promise(function(resolve, reject){
+      var old = document.querySelector('iframe'); if (old) old.remove();
+      var f = document.createElement('iframe');
+      var timer = setTimeout(function(){ reject(new Error('index.html을 10초 안에 열지 못했습니다')); }, 10000);
+      f.onload = function(){ clearTimeout(timer); resolve(f); };
+      f.src = 'index.html?t=' + Date.now();
+      document.body.appendChild(f);
+    });
+  }
+
+  function storedCount(){
+    try { var v = JSON.parse(localStorage.getItem(KEY) || '[]'); return Array.isArray(v) ? v.length : -1; }
+    catch(e){ return -1; }
+  }
+
+  async function runOne(t){
+    localStorage.setItem(KEY, JSON.stringify(SEED));
+    var f = await loadFrame();
+    var doc = f.contentDocument;
+    var input = doc.getElementById('tfile');
+    var notice = doc.getElementById('notice');
+    if (!input || !notice) throw new Error('index.html에서 #tfile 또는 #notice를 찾지 못했습니다');
+    await sleep(150);
+    var before = notice.textContent;
+    notice.textContent = ''; notice.className = 'notice';   // 이전 안내 지우고 시작
+
+    var W = f.contentWindow;
+    var dt = new W.DataTransfer();
+    dt.items.add(new W.File([t.json], t.id + '.json', { type:'application/json' }));
+    input.files = dt.files;
+    input.dispatchEvent(new W.Event('change', { bubbles:true }));
+
+    var waited = 0;
+    while (!notice.textContent && waited < 3000){ await sleep(50); waited += 50; }
+    await sleep(100);
+
+    var text = notice.textContent;
+    var kind = notice.classList.contains('error') ? 'error'
+             : notice.classList.contains('ok') ? 'ok'
+             : notice.classList.contains('warn') ? 'warn' : '(없음)';
+    var count = storedCount();
+    var why = [];
+    if (kind !== t.want.kind) why.push('안내 종류: 기대 ' + t.want.kind + ' / 실제 ' + kind);
+    if (count !== t.want.count) why.push('저장된 템플릿 수: 기대 ' + t.want.count + ' / 실제 ' + count);
+    t.want.has.forEach(function(s){ if (text.indexOf(s) < 0) why.push('안내 문구에 ' + s + ' 없음'); });
+    return { pass: why.length === 0, why: why, text: text };
+  }
+
+  document.getElementById('run').addEventListener('click', async function(){
+    var btn = this; btn.disabled = true;
+    var backup = localStorage.getItem(KEY);
+    var pass = 0, fails = [];
+    try {
+      for (var i = 0; i < TESTS.length; i++){
+        var t = TESTS[i], cell = t.row.children[3];
+        cell.textContent = '실행 중'; cell.className = 'r';
+        var r;
+        try { r = await runOne(t); }
+        catch(e){ r = { pass:false, why:['실행 오류: ' + e.message], text:'' }; }
+        cell.textContent = r.pass ? 'PASS' : 'FAIL';
+        cell.className = 'r ' + (r.pass ? 'PASS' : 'FAIL');
+        if (!r.pass){
+          var w = document.createElement('div'); w.className = 'why';
+          w.textContent = r.why.join('\n') + (r.text ? '\n실제 안내: ' + r.text.replace(/\n/g,' / ') : '');
+          cell.appendChild(w);
+          fails.push(t.id);
+        } else pass++;
+      }
+    } finally {
+      if (backup === null) localStorage.removeItem(KEY); else localStorage.setItem(KEY, backup);
+      var fr = document.querySelector('iframe'); if (fr) fr.remove();
+      btn.disabled = false;
+    }
+    var now = new Date();
+    var kst = new Date(now.getTime() + 9*3600*1000).toISOString().replace('T',' ').slice(0,16) + ' KST';
+    document.getElementById('sum').innerHTML = '<span class="' + (pass === 10 ? 'PASS' : 'FAIL') + '">' + pass + ' / 10 PASS</span>';
+    document.getElementById('runline').textContent =
+      SUITE + ' | ' + kst + ' | ' + pass + '/10 PASS | FAIL: ' + (fails.length ? fails.join(', ') : '없음');
+  });
+})();
+</script>
+</body>
+</html>
