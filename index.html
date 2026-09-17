@@ -911,6 +911,18 @@
       for(var j=0;j<REQUIRED.length;j++)
         if(t.data[REQUIRED[j]]===undefined)
           return no+'에 필수 항목 "'+REQUIRED[j]+'"가 없습니다';
+
+      if(t.data.ratio!=='1:1'&&t.data.ratio!=='4:5'&&t.data.ratio!=='9:16')
+        return no+'의 "ratio" 값이 올바르지 않습니다';
+
+      if(typeof t.data.text!=='string')
+        return no+'의 "text" 값이 올바르지 않습니다';
+
+      if(typeof t.data.color!=='string'||!/^#[0-9A-Fa-f]{6}$/.test(t.data.color))
+        return no+'의 "color" 값이 올바르지 않습니다';
+
+      if(t.data.align!=='left'&&t.data.align!=='center'&&t.data.align!=='right')
+        return no+'의 "align" 값이 올바르지 않습니다';
     }
     return null;
   }
