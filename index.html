@@ -918,6 +918,9 @@
       if(typeof t.data.text!=='string')
         return no+'의 "text" 값이 올바르지 않습니다';
 
+      if(typeof t.data.size!=='number'||!isFinite(t.data.size)||t.data.size<20||t.data.size>160)
+        return no+'의 "size" 값이 올바르지 않습니다';
+
       if(typeof t.data.color!=='string'||!/^#[0-9A-Fa-f]{6}$/.test(t.data.color))
         return no+'의 "color" 값이 올바르지 않습니다';
 
